@@ -8,7 +8,7 @@ A lot of sharing and participation will help the project progress.
 
 ## Software Requirements
 
-To build and test this project, you need the .NET 6 SDK.
+To build and test this project, you need the [.NET 6 SDK](https://dot.net/).
 
 Windows, Linux, and macOS are supported as of operating systems.
 
@@ -46,7 +46,7 @@ In addition, there may be more restrictions. All of these constraints require fu
 
 ## Command-line Tool Synopsis
 
-```
+```bash
 $ dotnet run -- --help
 
 Description:
