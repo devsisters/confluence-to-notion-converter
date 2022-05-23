@@ -84,4 +84,6 @@ If using this tool is difficult or not appropriate, please consider that it may 
 
 ## License
 
-The source code for this project is provided under the MIT license. [Please check here for more details.](LICENSE.txt)
+The source code for this project is provided under the Apache-2.0 license.
+
+[Please check here for more details.](LICENSE.txt)
