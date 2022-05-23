@@ -1,37 +1,49 @@
-## Welcome to GitHub Pages
+# Confluence to Notion Converter
 
-You can use the [editor on GitHub](https://github.com/devsisters/confluence-to-notion-converter/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+This open-source software project implements a tool that transforms XML data backup files from the Confluence cloud so that users can import the existing contents into Notion.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+This project is still under development, and there is still a lot of work to be done to verify, implement, and test the functionality.
 
-### Markdown
+A lot of sharing and participation will help the project progress.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## Command-line Tool Synopsis
 
-```markdown
-Syntax highlighted code block
+```bash
+$ dotnet run -- --help
 
-# Header 1
-## Header 2
-### Header 3
+Description:
+  Confluence to Notion data converter
 
-- Bulleted
-- List
+Usage:
+  conf2notion [options]
 
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+Options:
+  --input-xml-zip-file <input-xml-zip-file>      The file system path where the ZIP file in XML format created by the Confluence Space export function is stored.
+  --confluence-domain <confluence-domain>        The domain name of the Confluence cloud service (e.g., acme.atlassian.net).
+  --output-html-zip-file <output-html-zip-file>  File system path to save the converted ZIP file.
+  --verbose                                      Toggle verbosity [default: False]
+  --version                                      Show version information
+  -?, -h, --help                                 Show help and usage information
 ```
 
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+Three parameters must be specified to run this tool.
 
-### Jekyll Themes
+- The `--input-xml-zip-file` switch must specify the file system path of the ZIP file containing the XML data created by the space export feature in the Confluence cloud. URLs are not supported.
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/devsisters/confluence-to-notion-converter/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+- The `--confluence-domain` switch must specify the domain name of the Confluence cloud service. For example, if you have a team named `acme`, you should specify `acme.atlassian.net`.
 
-### Support or Contact
+- The `--output-html-zip-file` switch must specify the path to the ZIP file that will be created after conversion. If there is a file in the path, the execution of the program is stopped.
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+## Contributions
+
+This project is an open-source software project, and you can contribute to code modifications through our GitHub repository.
+
+## Disclaimer
+
+The code of this project is provided as-is, and we are not responsible for any damages that may arise from the execution or utilization of the code.
+
+If using this tool is difficult or not appropriate, please consider that it may be more appropriate to contact technical support directly with Atlassian or Notion.
+
+## License
+
+The source code for this project is provided under the Apache-2.0 license.
