@@ -1,5 +1,7 @@
 # Confluence to Notion Converter
 
+[Go to the project](https://github.com/devsisters/confluence-to-notion-converter)
+
 This open-source software project implements a tool that transforms XML data backup files from the Confluence cloud so that users can import the existing contents into Notion.
 
 This project is still under development, and there is still a lot of work to be done to verify, implement, and test the functionality.
