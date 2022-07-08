@@ -1,0 +1,8 @@
+﻿# Edit and save this confluence_crawler_settings.yaml file into your home directory.
+confluence:
+  domain: 'acme.atlassian.net'
+  userName: 'someone@example.com'
+  token: '...'
+notion:
+  authToken: '...'
+  pageId: '...'
