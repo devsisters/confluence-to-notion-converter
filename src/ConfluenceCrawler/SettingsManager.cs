@@ -19,6 +19,10 @@ public sealed class SettingsManager
         var settingsFilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             "confluence_crawler_settings.yaml");
+
+        if (!File.Exists(settingsFilePath))
+            return null;
+
         using var fileStream = File.OpenRead(settingsFilePath);
         return _serializer.Deserialize<CrawlerSettings>(fileStream);
     }
