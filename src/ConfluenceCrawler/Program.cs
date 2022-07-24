@@ -31,8 +31,9 @@ var host = Host
 
         services.AddSingleton<ConfluenceService>();
         services.AddSingleton<CrawlerService>();
+        services.AddSingleton<FileSystemHelper>();
     })
     .Build();
 
 var crawler = host.Services.GetRequiredService<CrawlerService>();
-await crawler.DoCrawling();
+crawler.DoCrawling();

@@ -1,81 +1,84 @@
 ﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace ConfluenceCrawler;
 
 public sealed class CrawlerService
 {
-    private readonly ILogger<CrawlerService> _logger;
+    private readonly ILogger _logger;
     private readonly ConfluenceService _service;
 	private readonly SettingsManager _settingsManager;
+	private readonly FileSystemHelper _fileSystemHelper;
 
-    public CrawlerService(ILogger<CrawlerService> logger, ConfluenceService service, SettingsManager settingsManager)
+    public CrawlerService(
+		ILogger<CrawlerService> logger,
+        ConfluenceService service,
+        SettingsManager settingsManager,
+        FileSystemHelper fileSystemHelper)
     {
         _logger = logger;
         _service = service;
-		_settingsManager = settingsManager;
+        _settingsManager = settingsManager;
+        _fileSystemHelper = fileSystemHelper;
     }
 
-    public async Task DoCrawling(CancellationToken cancellationToken = default)
+    public void DoCrawling()
     {
-		var settings = _settingsManager.LoadSettings() ??
+		var _ = _settingsManager.LoadSettings() ??
 			throw new Exception("Cannot load settings.");
 
-		await foreach (var eachSpace in _service.GetSpacesAsync(cancellationToken))
-		{
-			_logger.LogInformation($"Space Name: {eachSpace.Value<string>("name")}, Space Key: {eachSpace.Value<string>("key")}");
+		_fileSystemHelper.EnsureDirectoryExists();
 
-			var spaceHomepage = await _service.GetSpaceHomepageAsync(eachSpace, cancellationToken);
+		var spaces = _service.GetGlobalSpaces();
+		var queue = new Queue<JObject>();
+
+		foreach (var eachSpace in spaces)
+		{
+			var spaceKey = eachSpace.Value<string>("key");
+
+			if (spaceKey == null)
+				continue;
+
+			_logger.LogInformation($"! Space Name: {eachSpace.Value<string>("name")}, Space Key: {spaceKey}");
+
+			var spaceHomepage = _service.GetSpaceHomepage(eachSpace);
 			_logger.LogInformation($"Space Homepage Title: {spaceHomepage?.Value<string>("title")}");
 
-			var spaceHomepageChildren = await _service.GetChildrenInfoAsync(spaceHomepage, cancellationToken);
-
-			/*
-			// To Do
-			await foreach (var eachAttachment in _service.GetAttachmentsAsync(spaceHomepageChildren, cancellationToken))
-			{
+			if (spaceHomepage == null)
 				continue;
-			}
-			*/
 
-			var spaceHomepageContentId = spaceHomepage?.Value<string>("id");
-			if (string.IsNullOrWhiteSpace(spaceHomepageContentId))
+			queue.Enqueue(spaceHomepage);
+
+			var spaceHomepageChildren = _service.GetChildrenInfo(spaceHomepage);
+
+			foreach (var eachChildPage in _service.GetPages(spaceHomepageChildren))
+				queue.Enqueue(eachChildPage);
+
+			while (queue.Count > 0)
             {
-				_logger.LogWarning("Cannot obtain content ID.");
-				continue;
-            }
+				if (!queue.TryDequeue(out JObject? eachChildPage))
+					continue;
 
-			var spaceHomepageContent = await _service.ConvertContentBodyAsync(spaceHomepageContentId);
-			_logger.LogTrace(spaceHomepageContent);
+				var eachChildPageId = eachChildPage.Value<string>("id");
 
-			await foreach (var eachChildPage in _service.GetPagesAsync(spaceHomepageChildren, cancellationToken))
-			{
+				if (string.IsNullOrWhiteSpace(eachChildPageId))
+				{
+					_logger.LogWarning("Cannot obtain content ID of child page.");
+					continue;
+				}
+
+				_logger.LogInformation($"Child Page Id: {eachChildPageId}");
 				_logger.LogInformation($"Child Page Title: {eachChildPage.Value<string>("title")}");
 
-				await foreach (var eachSubPage in _service.TraversePageAsync(eachChildPage, 1, cancellationToken))
-				{
-					_logger.LogInformation(new string('>', eachSubPage.Depth) + eachSubPage.PageObject.Value<string>("title"));
+				var eachChildPageContent = _service.ConvertContentBody(eachChildPageId);
+				_logger.LogTrace(eachChildPageContent);
 
-					var subPageChildrenInfo = await _service.GetChildrenInfoAsync(eachSubPage.PageObject, cancellationToken);
+				_fileSystemHelper.SaveHtmlContent(spaceKey, eachChildPageId, eachChildPageContent);
 
-					/*
-					// To Do
-					await foreach (var eachAttachment in _service.GetAttachmentsAsync(eachGrandChildrenInfo, cancellationToken))
-					{
-						continue;
-					}
-					*/
+				var eachChildPageChildren = _service.GetChildrenInfo(eachChildPage);
 
-					var subPageContentId = subPageChildrenInfo?.Value<string>("id");
-					if (string.IsNullOrWhiteSpace(subPageContentId))
-					{
-						_logger.LogWarning("Cannot obtain content ID of sub page.");
-						continue;
-					}
-
-					var subPageContent = await _service.ConvertContentBodyAsync(subPageContentId);
-					_logger.LogTrace(subPageContent);
-				}
-				continue;
+				foreach (var eachChildPageChild in _service.GetPages(eachChildPageChildren))
+					queue.Enqueue(eachChildPageChild);
 			}
 		}
 	}
