@@ -183,6 +183,7 @@ public sealed class ConfluenceService
 		return converted ?? string.Empty;
 	}
 
+	// To Do: url에 일반적인 외부 URL이 올 수 있고, 호스트 접속 오류가 발생하는 경우나 404 등에 대한 처리가 필요함.
 	public HttpResponseMessage SendGetRequest(string url)
 		=> _client.GetAsync(url).Result;
 }

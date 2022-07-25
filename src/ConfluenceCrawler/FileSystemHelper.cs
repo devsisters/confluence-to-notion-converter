@@ -22,11 +22,11 @@ public sealed class FileSystemHelper
             Directory.CreateDirectory(_workingDirectoryPath);
     }
 
-    public void SaveHtmlContent(string spaceKey, string contentId, string content)
+    public void SaveHtmlContent(string contentId, string content)
     {
-        _logger.LogInformation($"* Saving HTML content ID: {spaceKey}/{contentId}");
+        _logger.LogInformation($"* Saving HTML content ID: {contentId}");
 
-        var path = Path.Combine(_workingDirectoryPath, spaceKey);
+        var path = _workingDirectoryPath;
 
         if (!Directory.Exists(path))
             Directory.CreateDirectory(path);
@@ -36,29 +36,39 @@ public sealed class FileSystemHelper
             content, new UTF8Encoding(false));
     }
 
-    public string SaveImageResource(string spaceKey, HttpResponseMessage responseMessage)
+    public string SaveImageResource(HttpResponseMessage responseMessage)
     {
         if (responseMessage == null)
             throw new ArgumentNullException(nameof(responseMessage));
 
-        _logger.LogInformation($"* Saving Resource: {spaceKey}, {responseMessage.RequestMessage?.RequestUri}");
+        var requestMessage = responseMessage?.RequestMessage;
+
+        if (requestMessage == null)
+            throw new HttpRequestException("Cannot obtain the HTTP request object.");
+
+        var responseContent = responseMessage?.Content;
+
+        if (responseContent == null)
+            throw new HttpRequestException("Cannot obtain the HTTP  object.");
+
+        _logger.LogInformation($"* Saving Resource: {requestMessage.RequestUri}");
 
         if (!responseMessage.IsSuccessStatusCode)
             _logger.LogWarning($"* Cannot save resource due to error code - {responseMessage.StatusCode}");
 
-        var path = Path.Combine(_workingDirectoryPath, spaceKey, "images");
+        var path = Path.Combine(_workingDirectoryPath, "images");
 
         if (!Directory.Exists(path))
             Directory.CreateDirectory(path);
 
-        var fileName = responseMessage?.Content?.Headers?.ContentDisposition?.FileName?.Trim('"');
+        var fileName = responseContent.Headers.ContentDisposition?.FileNameStar?.Trim('"')?.Normalize();
 
         if (string.IsNullOrWhiteSpace(fileName))
             fileName = $"{Guid.NewGuid().ToString("n")}";
 
         if (string.IsNullOrWhiteSpace(Path.GetExtension(fileName)))
         {
-            var mediaType = responseMessage?.Content?.Headers?.ContentType?.MediaType;
+            var mediaType = responseContent.Headers?.ContentType?.MediaType;
             if (!string.IsNullOrWhiteSpace(mediaType))
             {
                 var extension = _contentInspector.GetExtensions(mediaType).FirstOrDefault();
@@ -70,7 +80,7 @@ public sealed class FileSystemHelper
 
         var fullPath = Path.Combine(path, fileName);
 
-        using (var remoteStream = responseMessage.Content.ReadAsStream())
+        using (var remoteStream = responseContent.ReadAsStream())
         using (var fileStream = File.OpenWrite(fullPath))
         {
             remoteStream.CopyTo(fileStream);

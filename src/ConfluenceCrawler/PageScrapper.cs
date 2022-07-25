@@ -43,7 +43,7 @@ public sealed class PageScrapper
 		CompilePage(target);
 
 		if (target.CompiledContent != null)
-			_fileSystemHelper.SaveHtmlContent(spaceKey, eachChildPageId, target.CompiledContent);
+			_fileSystemHelper.SaveHtmlContent(eachChildPageId, target.CompiledContent);
 		else
 			_logger.LogError("Cannot compile the content.");
 
@@ -53,6 +53,7 @@ public sealed class PageScrapper
 		foreach (var eachChildPageChild in _service.GetPages(eachChildPageChildren))
 			list.Add(new ScrapTarget(target.SpaceKey, target.Depth + 1, eachChildPageChild));
 
+		target.Children.AddRange(list);
 		return list;
 	}
 
@@ -78,7 +79,7 @@ public sealed class PageScrapper
 			_logger.LogInformation($"Found Image: {imageSrc}");
 
 			var response = _service.SendGetRequest(imageSrc);
-			var fileName = _fileSystemHelper.SaveImageResource(target.SpaceKey, response);
+			var fileName = _fileSystemHelper.SaveImageResource(response);
 			eachImageTag.SetAttributeValue("src", "images/" + fileName);
         }
 
@@ -88,16 +89,11 @@ public sealed class PageScrapper
 		foreach (var eachATag in anchorNodes)
         {
 			var aHref = HttpUtility.HtmlDecode(eachATag.GetAttributeValue("href", string.Empty));
-			var match = Regex.Match(aHref, @"/spaces/(?<SpaceKey>[^/?]+)/pages/(?<PageId>[^/?]+)/?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-			var spaceKey = match.Groups["SpaceKey"].Value;
+			var match = Regex.Match(aHref, @"/pages/(?<PageId>[^/?]+)/?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 			var pageId = match.Groups["PageId"].Value;
 
-			if (string.Equals(spaceKey, target.SpaceKey, StringComparison.OrdinalIgnoreCase) &&
-				!string.IsNullOrWhiteSpace(pageId))
-			{
+			if (!string.IsNullOrWhiteSpace(pageId))
 				eachATag.SetAttributeValue("href", $"{pageId}.html");
-			}
 		}
 
 		var buffer = new StringBuilder();

@@ -25,14 +25,15 @@ public sealed class CrawlerService
         _pageScrapper = pageScrapper;
     }
 
-    public void DoCrawling()
+    public IDictionary<string, ScrapTarget> DoCrawling()
     {
 		var _ = _settingsManager.LoadSettings() ??
 			throw new Exception("Cannot load settings.");
 
 		_fileSystemHelper.EnsureDirectoryExists();
 
-		var spaces = _service.GetGlobalSpaces().Take(1);
+		var results = new Dictionary<string, ScrapTarget>();
+		var spaces = _service.GetGlobalSpaces();
 
 		foreach (var eachSpace in spaces)
 		{
@@ -50,7 +51,10 @@ public sealed class CrawlerService
 			if (spaceHomepage == null)
 				continue;
 
-			queue.Enqueue(new ScrapTarget(spaceKey, 0, spaceHomepage));
+			var targetRoot = new ScrapTarget(spaceKey, 0, spaceHomepage);
+			results.Add(spaceKey, targetRoot);
+
+			queue.Enqueue(targetRoot);
 
 			while (queue.Count > 0)
             {
@@ -61,6 +65,8 @@ public sealed class CrawlerService
 					queue.Enqueue(eachSubTarget);
 			}
 		}
+
+		return results;
 	}
 }
 
@@ -69,4 +75,6 @@ public record class ScrapTarget(string SpaceKey, int Depth, JObject PageObject)
 	public string? PageId { get; set; }
 	public string? PageContent { get; set; }
 	public string? CompiledContent { get; set; }
+
+	public List<ScrapTarget> Children { get; } = new List<ScrapTarget>();
 }

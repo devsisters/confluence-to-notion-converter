@@ -38,4 +38,4 @@ var host = Host
     .Build();
 
 var crawler = host.Services.GetRequiredService<CrawlerService>();
-crawler.DoCrawling();
+var results = crawler.DoCrawling();
