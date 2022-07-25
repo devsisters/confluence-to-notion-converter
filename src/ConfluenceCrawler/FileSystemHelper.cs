@@ -33,4 +33,35 @@ public sealed class FileSystemHelper
             Path.Combine(path, $"{contentId}.html"),
             content, new UTF8Encoding(false));
     }
+
+    public string SaveResource(string spaceKey, HttpResponseMessage responseMessage)
+    {
+        if (responseMessage == null)
+            throw new ArgumentNullException(nameof(responseMessage));
+
+        _logger.LogInformation($"* Saving Resource: {spaceKey}/{responseMessage.RequestMessage?.RequestUri}");
+
+        if (!responseMessage.IsSuccessStatusCode)
+            _logger.LogWarning($"* Cannot save resource due to error code - {responseMessage.StatusCode}");
+
+        var path = Path.Combine(_workingDirectoryPath, spaceKey, "images");
+
+        if (!Directory.Exists(path))
+            Directory.CreateDirectory(path);
+
+        var fileName = responseMessage?.Content?.Headers?.ContentDisposition?.FileName;
+
+        if (string.IsNullOrWhiteSpace(fileName))
+            fileName = $"{Guid.NewGuid().ToString("n")}";
+
+        var fullPath = Path.Combine(path, fileName);
+
+        using (var remoteStream = responseMessage.Content.ReadAsStream())
+        using (var fileStream = File.OpenWrite(fullPath))
+        {
+            remoteStream.CopyTo(fileStream);
+        }
+
+        return fullPath;
+    }
 }

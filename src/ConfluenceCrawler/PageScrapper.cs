@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using HtmlAgilityPack;
+using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace ConfluenceCrawler;
 
@@ -54,8 +56,29 @@ public sealed class PageScrapper
 
 	private void CompilePage(ScrapTarget target)
     {
-		var htmlContent = target.PageContent;
+		var htmlDoc = new HtmlDocument();
+		htmlDoc.LoadHtml(target.PageContent);
 
-		target.CompiledContent = htmlContent;
+		var baseElement = htmlDoc.DocumentNode.SelectSingleNode("/html/head/base");
+		var baseUri = baseElement?.GetAttributeValue("href", string.Empty);
+		var imageNodes = htmlDoc.DocumentNode.SelectNodes("//img") ?? Enumerable.Empty<HtmlNode>();
+
+		foreach (var eachImageTag in imageNodes)
+        {
+			var src = string.Concat(baseUri, eachImageTag.GetAttributeValue("src", string.Empty));
+			_logger.LogInformation($"Found Image: {src}");
+
+			var response = _service.SendGetRequest(src);
+			_fileSystemHelper.SaveResource(target.SpaceKey, response);
+			continue;
+        }
+
+		var buffer = new StringBuilder();
+		using (var writer = new StringWriter(buffer))
+		{
+			htmlDoc.Save(writer);
+		}
+
+		target.CompiledContent = buffer.ToString();
 	}
 }

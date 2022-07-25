@@ -29,6 +29,21 @@ var host = Host
             );
         });
 
+        services.AddHttpClient("confluence_resource", (sp, httpClient) =>
+        {
+            var settingsManager = sp.GetRequiredService<SettingsManager>();
+            var settings = settingsManager.LoadSettings() ??
+                throw new Exception("Cannot load crawler settings.");
+
+            var domain = settings.Confluence.Domain;
+            var userName = settings.Confluence.UserName;
+            var token = settings.Confluence.Token;
+
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                "Basic", Convert.ToBase64String(ASCIIEncoding.ASCII.GetBytes($"{userName}:{token}"))
+            );
+        });
+
         services.AddSingleton<ConfluenceService>();
         services.AddSingleton<CrawlerService>();
         services.AddSingleton<FileSystemHelper>();
