@@ -36,7 +36,7 @@ public sealed class FileSystemHelper
             content, new UTF8Encoding(false));
     }
 
-    public string SaveResource(string spaceKey, HttpResponseMessage responseMessage)
+    public string SaveImageResource(string spaceKey, HttpResponseMessage responseMessage)
     {
         if (responseMessage == null)
             throw new ArgumentNullException(nameof(responseMessage));
@@ -46,7 +46,7 @@ public sealed class FileSystemHelper
         if (!responseMessage.IsSuccessStatusCode)
             _logger.LogWarning($"* Cannot save resource due to error code - {responseMessage.StatusCode}");
 
-        var path = Path.Combine(_workingDirectoryPath, spaceKey, "attachments");
+        var path = Path.Combine(_workingDirectoryPath, spaceKey, "images");
 
         if (!Directory.Exists(path))
             Directory.CreateDirectory(path);
@@ -76,6 +76,6 @@ public sealed class FileSystemHelper
             remoteStream.CopyTo(fileStream);
         }
 
-        return fullPath;
+        return fileName;
     }
 }
