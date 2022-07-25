@@ -32,6 +32,7 @@ var host = Host
         services.AddSingleton<ConfluenceService>();
         services.AddSingleton<CrawlerService>();
         services.AddSingleton<FileSystemHelper>();
+        services.AddSingleton<PageScrapper>();
     })
     .Build();
 

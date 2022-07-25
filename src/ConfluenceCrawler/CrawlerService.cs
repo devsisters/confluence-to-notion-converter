@@ -9,17 +9,20 @@ public sealed class CrawlerService
     private readonly ConfluenceService _service;
 	private readonly SettingsManager _settingsManager;
 	private readonly FileSystemHelper _fileSystemHelper;
+	private readonly PageScrapper _pageScrapper;
 
     public CrawlerService(
 		ILogger<CrawlerService> logger,
         ConfluenceService service,
         SettingsManager settingsManager,
-        FileSystemHelper fileSystemHelper)
+        FileSystemHelper fileSystemHelper,
+        PageScrapper pageScrapper)
     {
         _logger = logger;
         _service = service;
         _settingsManager = settingsManager;
         _fileSystemHelper = fileSystemHelper;
+        _pageScrapper = pageScrapper;
     }
 
     public void DoCrawling()
@@ -29,11 +32,11 @@ public sealed class CrawlerService
 
 		_fileSystemHelper.EnsureDirectoryExists();
 
-		var spaces = _service.GetGlobalSpaces();
-		var queue = new Queue<JObject>();
+		var spaces = _service.GetGlobalSpaces().Take(1);
 
 		foreach (var eachSpace in spaces)
 		{
+			var queue = new Queue<ScrapTarget>();
 			var spaceKey = eachSpace.Value<string>("key");
 
 			if (spaceKey == null)
@@ -47,39 +50,23 @@ public sealed class CrawlerService
 			if (spaceHomepage == null)
 				continue;
 
-			queue.Enqueue(spaceHomepage);
-
-			var spaceHomepageChildren = _service.GetChildrenInfo(spaceHomepage);
-
-			foreach (var eachChildPage in _service.GetPages(spaceHomepageChildren))
-				queue.Enqueue(eachChildPage);
+			queue.Enqueue(new ScrapTarget(spaceKey, 0, spaceHomepage));
 
 			while (queue.Count > 0)
             {
-				if (!queue.TryDequeue(out JObject? eachChildPage))
+				if (!queue.TryDequeue(out ScrapTarget? eachChildPage))
 					continue;
 
-				var eachChildPageId = eachChildPage.Value<string>("id");
-
-				if (string.IsNullOrWhiteSpace(eachChildPageId))
-				{
-					_logger.LogWarning("Cannot obtain content ID of child page.");
-					continue;
-				}
-
-				_logger.LogInformation($"Child Page Id: {eachChildPageId}");
-				_logger.LogInformation($"Child Page Title: {eachChildPage.Value<string>("title")}");
-
-				var eachChildPageContent = _service.ConvertContentBody(eachChildPageId);
-				_logger.LogTrace(eachChildPageContent);
-
-				_fileSystemHelper.SaveHtmlContent(spaceKey, eachChildPageId, eachChildPageContent);
-
-				var eachChildPageChildren = _service.GetChildrenInfo(eachChildPage);
-
-				foreach (var eachChildPageChild in _service.GetPages(eachChildPageChildren))
-					queue.Enqueue(eachChildPageChild);
+				foreach (var eachSubTarget in _pageScrapper.ScrapPages(spaceKey, eachChildPage))
+					queue.Enqueue(eachSubTarget);
 			}
 		}
 	}
+}
+
+public record class ScrapTarget(string SpaceKey, int Depth, JObject PageObject)
+{
+	public string? PageId { get; set; }
+	public string? PageContent { get; set; }
+	public string? CompiledContent { get; set; }
 }
