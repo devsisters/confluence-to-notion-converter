@@ -12,7 +12,6 @@ public sealed class ConfluenceService
 		_settingsManager = settingsManager;
 
 		_client = _hcFactory.CreateClient("confluence");
-		_resourceClient = _hcFactory.CreateClient("confluence_resource");
 		_settings = _settingsManager.LoadSettings()
 			?? throw new Exception("Cannot load the settings");
 		_context = _settings.Confluence.Context.TrimEnd('/') + "/";
@@ -22,7 +21,6 @@ public sealed class ConfluenceService
 	private readonly SettingsManager _settingsManager;
 
 	private readonly HttpClient _client;
-	private readonly HttpClient _resourceClient;
 	private readonly CrawlerSettings _settings;
 	private readonly string _context;
 
@@ -186,7 +184,7 @@ public sealed class ConfluenceService
 	}
 
 	public HttpResponseMessage SendGetRequest(string url)
-		=> _resourceClient.GetAsync(url).Result;
+		=> _client.GetAsync(url).Result;
 }
 
 public record PageTraverseResult(int Depth, JObject PageObject);

@@ -1,5 +1,6 @@
 ﻿using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Text;
 
 namespace ConfluenceCrawler;
@@ -59,18 +60,25 @@ public sealed class PageScrapper
 		var htmlDoc = new HtmlDocument();
 		htmlDoc.LoadHtml(target.PageContent);
 
-		var baseElement = htmlDoc.DocumentNode.SelectSingleNode("/html/head/base");
-		var baseUri = baseElement?.GetAttributeValue("href", string.Empty);
+		var headStyleNodes = htmlDoc.DocumentNode.SelectNodes("/html/head/style") ?? Enumerable.Empty<HtmlNode>();
+		foreach (var eachStyleNode in headStyleNodes)
+			eachStyleNode.Remove();
+
+		//var baseElement = htmlDoc.DocumentNode.SelectSingleNode("/html/head/base");
+		//var baseUri = baseElement?.GetAttributeValue("href", string.Empty);
 		var imageNodes = htmlDoc.DocumentNode.SelectNodes("//img") ?? Enumerable.Empty<HtmlNode>();
+		imageNodes = imageNodes.Where(img => !string.IsNullOrWhiteSpace(img.GetAttributeValue("src", null)));
 
 		foreach (var eachImageTag in imageNodes)
         {
-			var src = string.Concat(baseUri, eachImageTag.GetAttributeValue("src", string.Empty));
-			_logger.LogInformation($"Found Image: {src}");
+			var imageSrc = eachImageTag.GetAttributeValue("src", string.Empty);
+			// To Do: imageSrc HTML escape를 unescape해야 함. (&quot; -> ")
+			if (imageSrc.Contains(".key", StringComparison.OrdinalIgnoreCase))
+				Debugger.Break();
+			_logger.LogInformation($"Found Image: {imageSrc}");
 
-			var response = _service.SendGetRequest(src);
+			var response = _service.SendGetRequest(imageSrc);
 			_fileSystemHelper.SaveResource(target.SpaceKey, response);
-			continue;
         }
 
 		var buffer = new StringBuilder();
