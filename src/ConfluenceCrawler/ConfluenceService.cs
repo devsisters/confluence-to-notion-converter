@@ -1,13 +1,16 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Net;
 using System.Net.Http.Headers;
 
 namespace ConfluenceCrawler;
 
 public sealed class ConfluenceService
 {
-	public ConfluenceService(IHttpClientFactory hcFactory, SettingsManager settingsManager)
+	public ConfluenceService(ILogger<ConfluenceService> logger, IHttpClientFactory hcFactory, SettingsManager settingsManager)
 	{
+		_logger = logger;
 		_hcFactory = hcFactory;
 		_settingsManager = settingsManager;
 
@@ -17,6 +20,7 @@ public sealed class ConfluenceService
 		_context = _settings.Confluence.Context.TrimEnd('/') + "/";
 	}
 
+	private readonly ILogger _logger;
 	private readonly IHttpClientFactory _hcFactory;
 	private readonly SettingsManager _settingsManager;
 
@@ -183,9 +187,23 @@ public sealed class ConfluenceService
 		return converted ?? string.Empty;
 	}
 
-	// To Do: url에 일반적인 외부 URL이 올 수 있고, 호스트 접속 오류가 발생하는 경우나 404 등에 대한 처리가 필요함.
-	public HttpResponseMessage SendGetRequest(string url)
-		=> _client.GetAsync(url).Result;
+	public bool SendGetRequest(string url, out HttpResponseMessage? responseMessage, out Exception? exception)
+    {
+		try
+		{
+			var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+			responseMessage = _client.SendAsync(requestMessage).Result;
+			exception = null;
+			return true;
+		}
+		catch (Exception ex)
+        {
+			_logger.LogWarning(ex, $"Cannot send get request due to error: {ex.Message}");
+			responseMessage = null;
+			exception = ex;
+			return false;
+        }
+    }
 }
 
 public record PageTraverseResult(int Depth, JObject PageObject);

@@ -78,7 +78,19 @@ public sealed class PageScrapper
 			var imageSrc = HttpUtility.HtmlDecode(eachImageTag.GetAttributeValue("src", string.Empty));
 			_logger.LogInformation($"Found Image: {imageSrc}");
 
-			var response = _service.SendGetRequest(imageSrc);
+			if (!_service.SendGetRequest(imageSrc, out HttpResponseMessage? response, out Exception? ex) ||
+				response == null)
+			{
+				_logger.LogWarning($"Cannot download image due to error: {imageSrc}");
+				continue;
+			}
+
+			if (!response.IsSuccessStatusCode)
+            {
+				_logger.LogWarning($"Cannot download image due to remote error: {imageSrc} ({(int)response.StatusCode})");
+				continue;
+            }
+
 			var fileName = _fileSystemHelper.SaveImageResource(response);
 			eachImageTag.SetAttributeValue("src", "images/" + fileName);
         }

@@ -38,15 +38,12 @@ public sealed class FileSystemHelper
 
     public string SaveImageResource(HttpResponseMessage responseMessage)
     {
-        if (responseMessage == null)
-            throw new ArgumentNullException(nameof(responseMessage));
-
-        var requestMessage = responseMessage?.RequestMessage;
+        var requestMessage = responseMessage.RequestMessage;
 
         if (requestMessage == null)
             throw new HttpRequestException("Cannot obtain the HTTP request object.");
 
-        var responseContent = responseMessage?.Content;
+        var responseContent = responseMessage.Content;
 
         if (responseContent == null)
             throw new HttpRequestException("Cannot obtain the HTTP  object.");
